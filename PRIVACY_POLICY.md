@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Wake Up Darling**  
-**Version:** 1.1.0  
+**Version:** 2.0.0  
 **Platform:** Android  
 **Developer:** S.G. Rathenesh  
 **Last Updated:** March 2026
@@ -126,4 +126,4 @@ GitHub: [github.com/S-G-Rathenesh](https://github.com/S-G-Rathenesh)
 
 ---
 
-*This privacy policy applies to the Wake Up Darling mobile application (v1.1.0) for Android.*
+*This privacy policy applies to the Wake Up Darling mobile application (v2.0.0) for Android.*
