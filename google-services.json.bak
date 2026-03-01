@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "256750858303",
+    "project_id": "wake-up-darling",
+    "storage_bucket": "wake-up-darling.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:256750858303:android:e0cdc1ab75ee961bee888a",
+        "android_client_info": {
+          "package_name": "com.rathenesh.wakeupdarling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4XeUxKdycVV3Y6MNKUTxA-w8BC7SRreQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

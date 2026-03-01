@@ -57,7 +57,6 @@ class AboutScreen extends StatelessWidget {
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.15),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.purple.withValues(alpha: 0.4),
@@ -66,10 +65,13 @@ class AboutScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.alarm,
-                      color: Colors.white,
-                      size: 50,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'logo.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   )
                       .animate()
@@ -129,7 +131,7 @@ class AboutScreen extends StatelessWidget {
                     title: 'Privacy',
                     body:
                         'This app stores chat, call signaling, and wake status '
-                        'securely using Firebase. Media is stored using Cloudinary. '
+                        'securely using Firebase. Media is stored locally on your device. '
                         'No personal data is sold or shared.',
                   ).animate().fadeIn(duration: 500.ms, delay: 400.ms),
                   const SizedBox(height: 24),
