@@ -1,132 +1,124 @@
-# Privacy Policy — Wake Up Darling
+# Privacy Policy
 
-**Last Updated:** February 28, 2026
-
-## Introduction
-
-Wake Up Darling ("the App") is a couple bonding alarm application created by **S.G. Rathenesh**. This Privacy Policy explains how the App collects, uses, and protects your information.
-
-By using the App, you agree to the terms outlined in this policy.
+**Wake Up Darling**  
+**Version:** 1.1.0  
+**Platform:** Android  
+**Developer:** S.G. Rathenesh  
+**Last Updated:** March 2026
 
 ---
 
-## Information We Collect
+## 1. Introduction
 
-### 1. Account Information
-- **Email address** and **display name** — collected via Firebase Authentication for account creation and login.
-- **Profile photo** — optionally uploaded by users for personalization.
+Wake Up Darling ("the App") is a couple-based alarm and communication application designed to help partners stay connected through shared alarms, real-time messaging, voice and video calls, and media sharing.
 
-### 2. Couple & Pairing Data
-- **Couple ID and partner association** — stored in Firebase Firestore to link paired users.
-
-### 3. Chat Data
-- **Text messages, voice notes, images, and videos** — exchanged between paired users within the App.
-- **Message metadata** — timestamps, read/delivered status, reactions, and reply references.
-
-### 4. Call Data
-- **Call signaling metadata** — call type (voice/video), timestamps, duration, and connection status stored in Firestore.
-- **WebRTC peer connection data** — used in real-time for voice and video calls; not permanently stored.
-
-### 5. Alarm & Wake Data
-- **Alarm schedules and statuses** — stored in Firestore to coordinate couple alarm functionality.
-- **Voice wake recordings** — uploaded to Cloudinary and referenced in Firestore for the voice wake feature.
-- **Wake statistics** — wake attempts, streaks, and alarm response data.
-
-### 6. Device Information
-- **Device token** — collected via Firebase Cloud Messaging for push notifications.
-- **Timezone** — used to schedule alarms accurately.
+This Privacy Policy describes the types of information the App collects, how that information is used and stored, and your rights regarding your personal data. By installing or using the App, you acknowledge and agree to the practices described in this policy.
 
 ---
 
-## How We Use Your Information
+## 2. Information We Collect
 
-| Purpose | Data Used |
-|---|---|
-| Account management & login | Email, display name |
-| Couple pairing & features | Couple ID, partner info |
-| Chat functionality | Messages, media, metadata |
-| Voice & video calls | Call signaling, WebRTC streams |
-| Alarm scheduling & wake features | Alarm data, voice recordings |
-| Push notifications | Device token |
-| Wake streaks & statistics | Alarm response data |
+### 2.1 Account Information
+- Email address and unique user identifier (UID), collected through Firebase Authentication during account registration and login.
+
+### 2.2 Messages
+- Text messages, images, voice notes, and one-time view media exchanged between paired partners within the App.
+- Associated metadata including timestamps, delivery and read status, reactions, and reply references.
+
+### 2.3 Alarm Activity Data
+- Alarm schedules, statuses, wake attempt results, streaks, and response data used to coordinate the couple alarm feature.
+
+### 2.4 Call Usage Data
+- Call signaling metadata such as call type (voice or video), initiation timestamps, duration, and connection status.
+- Voice and video streams are processed through ZegoCloud and are not recorded or permanently stored by the App.
+
+### 2.5 Media Files
+- Images, voice notes, and voice wake recordings uploaded and stored using Cloudinary.
+- One-time view images are automatically deleted after they have been viewed.
+- Media is also cached in private local storage on the device and is not visible in the device gallery.
+
+### 2.6 Device Information
+- Device token, collected via Firebase Cloud Messaging for the delivery of push notifications.
+- Device timezone, used to schedule alarms accurately.
 
 ---
 
-## Third-Party Services
+## 3. How We Use Information
 
-The App uses the following third-party services:
+The information collected is used solely to enable and improve the functionality of the App. Specifically, it is used to:
+
+- Authenticate users and manage account access.
+- Enable real-time chat and media sharing between paired partners.
+- Facilitate alarm scheduling, wake features, and streak tracking.
+- Deliver push notifications for messages, calls, and alarms.
+- Enable voice and video calls through ZegoCloud.
+- Monitor and improve app performance and reliability.
+
+We do not use your information for advertising, profiling, or any purpose unrelated to the operation of the App.
+
+---
+
+## 4. Media Storage
+
+- Media files, including images and voice recordings, are stored securely using **Cloudinary**. Access to stored media is restricted to authenticated and authorized users only.
+- **One-time images** are automatically deleted from storage after they have been viewed by the recipient. One-time images cannot be saved or downloaded.
+- Media is cached in **private local storage** on the device using the application's internal documents directory. These files are not accessible through the device gallery and are automatically removed when the App is uninstalled.
+- Users may manually download standard (non-one-time) media to their device gallery using the download option provided within the App.
+
+---
+
+## 5. Third-Party Services
+
+The App relies on the following third-party services to deliver its functionality:
 
 | Service | Purpose | Privacy Policy |
 |---|---|---|
-| **Firebase** (Google) | Authentication, Firestore database, Cloud Messaging, Storage | [Firebase Privacy](https://firebase.google.com/support/privacy) |
-| **Cloudinary** | Media storage (images, voice notes, voice wakes) | [Cloudinary Privacy](https://cloudinary.com/privacy) |
-| **WebRTC** | Real-time voice and video communication | Peer-to-peer; no data stored by third parties |
+| **Firebase** (Google) | Authentication, Firestore database, Cloud Messaging | [Firebase Privacy Policy](https://firebase.google.com/support/privacy) |
+| **ZegoCloud** | Voice and video calling | [ZegoCloud Privacy Policy](https://www.zegocloud.com/privacy) |
+| **Cloudinary** | Media file storage and delivery | [Cloudinary Privacy Policy](https://cloudinary.com/privacy) |
+
+Each third-party service operates under its own privacy policy. We encourage you to review those policies for information on how your data may be processed by these providers.
 
 ---
 
-## Data Storage & Security
+## 6. Data Security
 
-- All user data is stored securely using **Firebase Firestore** with security rules that restrict access to authenticated and authorized users only.
-- Media files are stored on **Cloudinary** using unsigned uploads scoped to the App.
-- Voice and video call streams are transmitted **peer-to-peer** via WebRTC and are **not recorded or stored** by the App.
-- Data is transmitted over **encrypted connections** (HTTPS/TLS).
+We take reasonable measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. These measures include:
 
----
+- All data transmitted between the App and backend services is encrypted using HTTPS/TLS.
+- Firebase Firestore security rules restrict data access to authenticated and authorized users only.
+- Media stored on Cloudinary is scoped to the application and is not publicly indexed or discoverable.
+- Local media files are stored in the application's private directory, which is inaccessible to other applications on the device.
 
-## Data Sharing
-
-We do **NOT**:
-- Sell your personal data to any third party.
-- Share your data with advertisers.
-- Use your data for tracking or profiling beyond the App's functionality.
-
-Your data is only accessible to:
-- **You** and your **paired partner** within the App.
-- **Firebase and Cloudinary** as infrastructure providers (subject to their own privacy policies).
+While we implement industry-standard security practices, no method of electronic transmission or storage is completely secure. We cannot guarantee absolute security of your data.
 
 ---
 
-## Data Retention & Deletion
+## 7. User Rights
 
-- **Chat messages** — retained until deleted by users (delete for me / delete for everyone).
-- **Account data** — retained as long as your account exists.
-- **Alarm & wake data** — retained for streak tracking and statistics.
-- **Account deletion** — you may request full deletion of your data by contacting the developer at the email below. Upon request, all associated data (Firestore records, Cloudinary media) will be permanently deleted.
+You have the following rights regarding your data:
 
----
-
-## Permissions
-
-The App may request the following device permissions:
-
-| Permission | Purpose |
-|---|---|
-| **Microphone** | Voice calls, voice notes, voice wake recordings |
-| **Camera** | Video calls, image capture for chat |
-| **Notifications** | Push notifications for messages, calls, and alarms |
-| **Exact Alarm** | Scheduling alarms at precise times |
-| **Storage / Photos** | Sending and receiving media in chat |
-| **Phone State** | Detecting active phone calls during alarms |
-
-All permissions are requested at runtime and can be revoked through your device settings at any time.
+- **Account Deletion.** You may request the deletion of your account and all associated data by contacting the developer at the email address provided below. Upon request, all Firestore records, Cloudinary media, and locally stored files associated with your account will be permanently deleted.
+- **Chat History.** You may clear your chat history at any time using the delete options available within the App. Messages can be deleted for yourself or for both you and your partner.
+- **Data Removal Request.** You may request the removal of any specific data by contacting the developer. Requests will be processed in a timely manner.
 
 ---
 
-## Children's Privacy
+## 8. Children's Privacy
 
-The App is not intended for use by anyone under the age of **13**. We do not knowingly collect information from children under 13. If you believe a child has provided us with personal data, please contact us for removal.
-
----
-
-## Changes to This Policy
-
-We may update this Privacy Policy from time to time. Changes will be reflected by updating the "Last Updated" date at the top of this document. Continued use of the App after changes constitutes acceptance of the updated policy.
+The App is not intended for use by individuals under the age of 13. We do not knowingly collect personal information from children under 13. If you become aware that a child under 13 has provided personal data through the App, please contact us immediately so that we can take appropriate steps to remove that information.
 
 ---
 
-## Contact
+## 9. Changes to This Policy
 
-If you have questions, concerns, or data deletion requests, please contact:
+We may update this Privacy Policy from time to time to reflect changes in the App's functionality, legal requirements, or operational practices. Any changes will be indicated by updating the "Last Updated" date at the top of this document. Continued use of the App after any modifications to this policy constitutes your acceptance of the revised terms.
+
+---
+
+## 10. Contact Information
+
+If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact:
 
 **S.G. Rathenesh**  
 Email: sgrathenesh@gmail.com  
@@ -134,4 +126,4 @@ GitHub: [github.com/S-G-Rathenesh](https://github.com/S-G-Rathenesh)
 
 ---
 
-*This privacy policy applies to the Wake Up Darling mobile application.*
+*This privacy policy applies to the Wake Up Darling mobile application (v1.1.0) for Android.*
