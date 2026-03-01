@@ -12,7 +12,7 @@
   <a href="https://github.com/S-G-Rathenesh/wake-up-darling/releases/latest">
     <img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download APK"/>
   </a>
-  <img src="https://img.shields.io/badge/Version-1.0.0-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.1.0-blue?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform"/>
   <img src="https://img.shields.io/badge/Built%20with-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Built with Flutter"/>
 </p>
@@ -41,8 +41,8 @@ Wake Up Darling is a couple-based smart alarm application designed to strengthen
 ## 📥 Download
 
 <p align="center">
-  <a href="https://github.com/S-G-Rathenesh/wake-up-darling/releases/download/v1.0.0/wake-up-darling-v1.0.0.apk">
-    <img src="https://img.shields.io/badge/⬇_Download_APK-v1.0.0-success?style=for-the-badge&logo=android" alt="Download APK v1.0.0"/>
+  <a href="https://github.com/S-G-Rathenesh/wake-up-darling/releases/download/v2.1.0/Wake_Up_Darling_v2.1.0.apk">
+    <img src="https://img.shields.io/badge/⬇_Download_APK-v2.1.0-success?style=for-the-badge&logo=android" alt="Download APK v2.1.0"/>
   </a>
 </p>
 
@@ -60,7 +60,7 @@ Wake Up Darling is a couple-based smart alarm application designed to strengthen
 ---
 
 ## 🚀 Version
-**Current Version:** 1.0.0
+**Current Version:** 2.1.0
 
 ---
 
