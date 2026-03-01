@@ -164,7 +164,7 @@ This policy may be updated from time to time. Continued use of the App after upd
 ## 9. Contact Information
 
 S.G. Rathenesh  
-Email: sgrathenesh@gmail.com  
+Email: ratheneshsg@gmail.com  
 GitHub: https://github.com/S-G-Rathenesh  
 
 This Privacy Policy applies to Wake Up Darling mobile application (v2.0.0) for Android.
