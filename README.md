@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" width="180"/>
+  <img src="https://raw.githubusercontent.com/S-G-Rathenesh/wake-up-darling/main/logo.png" width="180"/>
 </p>
 
 <h1 align="center">Wake Up Darling ❤️⏰</h1>
