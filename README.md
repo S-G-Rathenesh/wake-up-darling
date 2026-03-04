@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="Wake Up Darling Logo" width="150"/>
+</p>
+
 <h1 align="center">Wake Up Darling ❤️</h1>
 
 <p align="center">
