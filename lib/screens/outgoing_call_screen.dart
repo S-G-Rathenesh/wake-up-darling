@@ -16,6 +16,7 @@ import 'ongoing_call_screen.dart';
 class OutgoingCallScreen extends StatefulWidget {
   final String callId;
   final String coupleId;
+  final String receiverId;
   final String receiverName;
   final String type; // 'voice' or 'video'
 
@@ -23,6 +24,7 @@ class OutgoingCallScreen extends StatefulWidget {
     super.key,
     required this.callId,
     required this.coupleId,
+    required this.receiverId,
     required this.receiverName,
     required this.type,
   });
@@ -59,6 +61,7 @@ class _OutgoingCallScreenState extends State<OutgoingCallScreen> {
               builder: (_) => OngoingCallScreen(
                 callId: widget.callId,
                 coupleId: widget.coupleId,
+                partnerId: widget.receiverId,
                 partnerName: widget.receiverName,
                 type: widget.type,
                 isCaller: true,

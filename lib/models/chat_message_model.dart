@@ -16,6 +16,7 @@ class ChatMessage {
   final MessageType messageType;
   final String text;
   final String? mediaUrl;
+  final String? imageData;              // base64 encoded (one-time images only)
   final String? localPath;               // private app storage path
   final String? mediaMimeType;
   final int? mediaDurationMs;           // voice note duration
@@ -31,6 +32,7 @@ class ChatMessage {
   final Map<String, String> reactions;  // uid → emoji
   final bool isOneTimeViewed;           // for oneTime images
   final List<String> oneTimeViewedBy;   // UIDs who already viewed
+  final bool isDeleted;                 // media deleted from storage
 
   ChatMessage({
     required this.id,
@@ -40,6 +42,7 @@ class ChatMessage {
     required this.messageType,
     this.text = '',
     this.mediaUrl,
+    this.imageData,
     this.localPath,
     this.mediaMimeType,
     this.mediaDurationMs,
@@ -55,6 +58,7 @@ class ChatMessage {
     this.reactions = const {},
     this.isOneTimeViewed = false,
     this.oneTimeViewedBy = const [],
+    this.isDeleted = false,
   });
 
   // ── Serialisation ──────────────────────────────────────────────────────────
@@ -67,6 +71,7 @@ class ChatMessage {
       'messageType': messageType.name,
       'text': text,
       'mediaUrl': mediaUrl,
+      'imageData': imageData,
       'localPath': localPath,
       'mediaMimeType': mediaMimeType,
       'mediaDurationMs': mediaDurationMs,
@@ -82,6 +87,7 @@ class ChatMessage {
       'reactions': reactions,
       'isOneTimeViewed': isOneTimeViewed,
       'oneTimeViewedBy': oneTimeViewedBy,
+      'isDeleted': isDeleted,
     };
   }
 
@@ -98,6 +104,7 @@ class ChatMessage {
       ),
       text: d['text'] ?? '',
       mediaUrl: d['mediaUrl'],
+      imageData: d['imageData'],
       localPath: d['localPath'],
       mediaMimeType: d['mediaMimeType'],
       mediaDurationMs: d['mediaDurationMs'],
@@ -128,6 +135,7 @@ class ChatMessage {
               ?.map((e) => e.toString())
               .toList() ??
           [],
+      isDeleted: d['isDeleted'] == true,
     );
   }
 
@@ -158,6 +166,7 @@ class ChatMessage {
     DateTime? editedAt,
     bool? isOneTimeViewed,
     List<String>? oneTimeViewedBy,
+    bool? isDeleted,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -167,6 +176,7 @@ class ChatMessage {
       messageType: messageType,
       text: text ?? this.text,
       mediaUrl: mediaUrl,
+      imageData: imageData,
       localPath: localPath ?? this.localPath,
       mediaMimeType: mediaMimeType,
       mediaDurationMs: mediaDurationMs,
@@ -182,6 +192,7 @@ class ChatMessage {
       reactions: reactions ?? this.reactions,
       isOneTimeViewed: isOneTimeViewed ?? this.isOneTimeViewed,
       oneTimeViewedBy: oneTimeViewedBy ?? this.oneTimeViewedBy,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }

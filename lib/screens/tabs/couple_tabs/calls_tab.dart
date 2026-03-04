@@ -111,6 +111,7 @@ class CoupleCalls extends StatelessWidget {
         pageBuilder: (_, __, ___) => OutgoingCallScreen(
           callId: callId,
           coupleId: coupleId,
+          receiverId: partnerId,
           receiverName: partnerName,
           type: type,
         ),

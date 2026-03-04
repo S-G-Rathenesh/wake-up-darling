@@ -34,6 +34,10 @@ dependencies:
   firebase_auth: ^5.1.0
   cloud_firestore: ^5.0.0
   firebase_messaging: ^15.0.0
+  firebase_storage: ^12.4.10
+
+  # Cloud Storage (Media)
+  cloudinary_public: ^0.21.0
 
   # Local Media Storage
   gallery_saver_plus: ^3.0.0
@@ -77,6 +81,7 @@ dependencies:
   zego_express_engine: ^3.13.2
 
   # Utilities
+  http: ^1.2.1
   intl: ^0.18.1
   mime: ^1.0.6
   url_launcher: ^6.2.5

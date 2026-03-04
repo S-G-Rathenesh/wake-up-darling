@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
@@ -24,9 +23,14 @@ class ZegoCallService {
   static bool _loggedIn = false;
   static String _currentRoomID = '';
 
-  // ─── Stream IDs ─────────────────────────────────────────────────────
-  static String _publishStreamID = '';
+  // ─── Dispose synchronisation ────────────────────────────────────────
+  /// Tracks a running [dispose] so [joinRoom] can await it before
+  /// re-initialising the engine. Prevents race conditions when the user
+  /// starts a new call immediately after ending the previous one.
+  static Future<void>? _pendingDispose;
 
+  // ─── Stream IDs ─────────────────────────────────────────────────────
+  static String _publishStreamID = '';  static String _currentUserID = '';
   // ─── Texture renderer IDs ───────────────────────────────────────────
   static int? localViewID;
   static int? remoteViewID;
@@ -49,7 +53,7 @@ class ZegoCallService {
 
     final profile = ZegoEngineProfile(
       _appID,
-      ZegoScenario.Default,
+      ZegoScenario.General,
       appSign: _appSign,
     );
 
@@ -80,7 +84,7 @@ class ZegoCallService {
   ///
   /// [userID] — unique user id (Firebase UID).
   /// [userName] — display name.
-  /// [roomID] — shared room id (use coupleId or callId).
+  /// [roomID] — shared room id (use coupleId).
   /// [isVideo] — whether to enable camera.
   static Future<bool> joinRoom({
     required String roomID,
@@ -88,6 +92,13 @@ class ZegoCallService {
     required String userName,
     required bool isVideo,
   }) async {
+    // Wait for any in-flight dispose() from a previous call.
+    if (_pendingDispose != null) {
+      debugPrint('[Zego] Waiting for pending dispose to finish…');
+      await _pendingDispose;
+      _pendingDispose = null;
+    }
+
     if (_loggedIn && _currentRoomID == roomID) {
       debugPrint('[Zego] Already in room $roomID');
       return true;
@@ -96,13 +107,101 @@ class ZegoCallService {
     // Ensure engine exists.
     await initEngine();
 
+    // Store current user ID for filtering own stream
+    _currentUserID = userID;
+
+    // ── Enable hardware BEFORE loginRoom ────────────────────────────
+    // This ensures the engine has audio/video enabled when joining
+    await ZegoExpressEngine.instance.enableCamera(isVideo);
+    await ZegoExpressEngine.instance.muteMicrophone(false); // unmute mic
+    await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
+    debugPrint('[Zego] Hardware enabled before login: camera=$isVideo, mic=unmuted, speaker=true');
+
+    // ── Register ALL callbacks BEFORE loginRoom ─────────────────────
+    // This is critical: Zego fires onRoomStreamUpdate for existing
+    // streams right after login. If the callback isn't set yet, the
+    // events are lost and the remote stream is never played.
+    ZegoExpressEngine.onRoomStreamUpdate = (
+      String roomID,
+      ZegoUpdateType updateType,
+      List<ZegoStream> streamList,
+      Map<String, dynamic> extendedData,
+    ) async {
+      if (updateType == ZegoUpdateType.Add) {
+        for (final stream in streamList) {
+          // Do NOT play own stream - only partner's stream
+          if (stream.streamID != 'stream_$_currentUserID') {
+            debugPrint('[Zego] Remote stream detected: ${stream.streamID}');
+            await _startPlayingStream(stream.streamID, isVideo);
+          } else {
+            debugPrint('[Zego] Skipping own stream: ${stream.streamID}');
+          }
+        }
+      } else if (updateType == ZegoUpdateType.Delete) {
+        for (final stream in streamList) {
+          debugPrint('[Zego] Remote stream removed: ${stream.streamID}');
+          await _stopPlayingStream(stream.streamID);
+        }
+      }
+    };
+
+    ZegoExpressEngine.onRoomUserUpdate = (
+      String roomID,
+      ZegoUpdateType updateType,
+      List<ZegoUser> userList,
+    ) {
+      for (final u in userList) {
+        debugPrint(
+          '[Zego] User ${updateType == ZegoUpdateType.Add ? "joined" : "left"}: '
+          '${u.userID} (${u.userName}) in room $roomID',
+        );
+      }
+    };
+
+    ZegoExpressEngine.onRoomStateChanged = (
+      String roomID,
+      ZegoRoomStateChangedReason reason,
+      int errorCode,
+      Map<String, dynamic> extendedData,
+    ) {
+      debugPrint(
+        '[Zego] Room state changed: room=$roomID, reason=$reason, '
+        'errorCode=$errorCode',
+      );
+    };
+
+    ZegoExpressEngine.onPublisherStateUpdate = (
+      String streamID,
+      ZegoPublisherState state,
+      int errorCode,
+      Map<String, dynamic> extendedData,
+    ) {
+      debugPrint(
+        '[Zego] Publisher state: stream=$streamID, state=$state, '
+        'errorCode=$errorCode',
+      );
+    };
+
+    ZegoExpressEngine.onPlayerStateUpdate = (
+      String streamID,
+      ZegoPlayerState state,
+      int errorCode,
+      Map<String, dynamic> extendedData,
+    ) {
+      debugPrint(
+        '[Zego] Player state: stream=$streamID, state=$state, '
+        'errorCode=$errorCode',
+      );
+    };
+
+    // ── Now login to room ───────────────────────────────────────────
     final user = ZegoUser(userID, userName);
     final config = ZegoRoomConfig.defaultConfig()
       ..isUserStatusNotify = true;
 
     try {
-      final result =
-          await ZegoExpressEngine.instance.loginRoom(roomID, user, config: config);
+      final result = await ZegoExpressEngine.instance
+          .loginRoom(roomID, user, config: config);
 
       if (result.errorCode != 0) {
         debugPrint('[Zego] loginRoom failed: ${result.errorCode}');
@@ -117,36 +216,29 @@ class ZegoCallService {
       return false;
     }
 
-    // ── Enable hardware ─────────────────────────────────────────────
-    await ZegoExpressEngine.instance.enableCamera(isVideo);
-    await ZegoExpressEngine.instance.muteMicrophone(false);
-    await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
-
-    // ── Register stream update callback ─────────────────────────────
-    ZegoExpressEngine.onRoomStreamUpdate = (
-      String roomID,
-      ZegoUpdateType updateType,
-      List<ZegoStream> streamList,
-      Map<String, dynamic> extendedData,
-    ) {
-      for (final stream in streamList) {
-        if (updateType == ZegoUpdateType.Add) {
-          debugPrint('[Zego] Remote stream added: ${stream.streamID}');
-          _startPlayingStream(stream.streamID, isVideo);
-        } else {
-          debugPrint('[Zego] Remote stream removed: ${stream.streamID}');
-          _stopPlayingStream(stream.streamID);
-        }
-      }
-    };
-
-    // ── Publish local stream ────────────────────────────────────────
-    _publishStreamID = '${userID}_stream';
-    await ZegoExpressEngine.instance
-        .startPublishingStream(_publishStreamID);
-    debugPrint('[Zego] Publishing stream: $_publishStreamID');
+    // ── Enable hardware ALREADY DONE ABOVE BEFORE loginRoom ─────────────────────
+    // Hardware is now enabled before loginRoom call above
+    // await ZegoExpressEngine.instance.enableCamera(isVideo);
+    // await ZegoExpressEngine.instance.muteMicrophone(false);
+    // await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
 
     return true;
+  }
+
+  // ─── Start Publishing Stream ─────────────────────────────────────
+
+  /// Starts publishing the local stream. Should be called AFTER startPreview()
+  /// for video calls.
+  static Future<void> startPublishing(String userID) async {
+    if (_publishStreamID.isNotEmpty) {
+      debugPrint('[Zego] Already publishing stream $_publishStreamID');
+      return;
+    }
+    
+    _publishStreamID = 'stream_$userID';
+    await ZegoExpressEngine.instance
+        .startPublishingStream(_publishStreamID);
+    debugPrint('[Zego] Started publishing stream: $_publishStreamID');
   }
 
   // ─── Create local preview widget ───────────────────────────────────
@@ -175,18 +267,27 @@ class ZegoCallService {
   static Future<void> _startPlayingStream(
       String streamID, bool isVideo) async {
     try {
-      final viewWidget = await ZegoExpressEngine.instance.createCanvasView(
-        (viewID) async {
-          remoteViewID = viewID;
-          final canvas = ZegoCanvas(viewID, viewMode: ZegoViewMode.AspectFill);
-          await ZegoExpressEngine.instance
-              .startPlayingStream(streamID, canvas: canvas);
-          debugPrint(
-              '[Zego] Playing remote stream $streamID (viewID=$viewID)');
-        },
-      );
-      remoteViewWidget = viewWidget;
-      remoteStreamReady.value = true;
+      if (isVideo) {
+        // Video call: create a canvas view to render remote video.
+        final viewWidget = await ZegoExpressEngine.instance.createCanvasView(
+          (viewID) async {
+            remoteViewID = viewID;
+            final canvas =
+                ZegoCanvas(viewID, viewMode: ZegoViewMode.AspectFill);
+            await ZegoExpressEngine.instance
+                .startPlayingStream(streamID, canvas: canvas);
+            debugPrint(
+                '[Zego] Playing remote video stream $streamID (viewID=$viewID)');
+          },
+        );
+        remoteViewWidget = viewWidget;
+        remoteStreamReady.value = true;
+      } else {
+        // Voice call: play audio-only — no canvas needed.
+        await ZegoExpressEngine.instance.startPlayingStream(streamID);
+        remoteStreamReady.value = true;
+        debugPrint('[Zego] Playing remote audio stream $streamID');
+      }
     } catch (e) {
       debugPrint('[Zego] _startPlayingStream error: $e');
     }
@@ -223,15 +324,27 @@ class ZegoCallService {
     debugPrint('[Zego] Speaker=$speaker');
   }
 
+  static bool _isFrontCamera = true;
+
   static Future<void> switchCamera() async {
-    await ZegoExpressEngine.instance.useFrontCamera(true);
+    _isFrontCamera = !_isFrontCamera;
+    await ZegoExpressEngine.instance.useFrontCamera(_isFrontCamera);
+    debugPrint('[Zego] Camera switched to ${_isFrontCamera ? "front" : "back"}');
   }
 
   // ─── Leave room & destroy ─────────────────────────────────────────
 
   /// Stops publishing, previewing, leaves the room, and destroys the engine.
-  /// Safe to call multiple times.
+  /// Safe to call multiple times. The returned [Future] is also stored in
+  /// [_pendingDispose] so that [joinRoom] can await it.
   static Future<void> dispose() async {
+    final future = _doDispose();
+    _pendingDispose = future;
+    await future;
+    _pendingDispose = null;
+  }
+
+  static Future<void> _doDispose() async {
     try {
       await ZegoExpressEngine.instance.stopPublishingStream();
       debugPrint('[Zego] Stopped publishing');
@@ -276,8 +389,13 @@ class ZegoCallService {
     }
 
     _publishStreamID = '';
+    _currentUserID = '';
 
     // Clear callbacks.
     ZegoExpressEngine.onRoomStreamUpdate = null;
+    ZegoExpressEngine.onRoomUserUpdate = null;
+    ZegoExpressEngine.onRoomStateChanged = null;
+    ZegoExpressEngine.onPublisherStateUpdate = null;
+    ZegoExpressEngine.onPlayerStateUpdate = null;
   }
 }

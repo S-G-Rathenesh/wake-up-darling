@@ -15,6 +15,7 @@ import '../widgets/voice_wave_bars.dart';
 class OngoingCallScreen extends StatefulWidget {
   final String callId;
   final String coupleId;
+  final String partnerId;
   final String partnerName;
   final String type; // 'voice' or 'video'
   final bool isCaller;
@@ -23,6 +24,7 @@ class OngoingCallScreen extends StatefulWidget {
     super.key,
     required this.callId,
     required this.coupleId,
+    required this.partnerId,
     required this.partnerName,
     required this.type,
     required this.isCaller,
@@ -132,7 +134,8 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     }
 
     // ── Join Zego room ───────────────────────────────────────────────
-    final roomID = widget.callId; // both sides share this
+    // CRITICAL: Use coupleId as roomID so both users join the SAME room
+    final roomID = widget.coupleId;
     final joined = await ZegoCallService.joinRoom(
       roomID: roomID,
       userID: uid.isNotEmpty ? uid : 'anon_${DateTime.now().millisecondsSinceEpoch}',
@@ -157,11 +160,17 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     // ── Start local preview (video calls) ────────────────────────────
     if (_isVideoCall) {
       _localView = await ZegoCallService.createLocalPreview();
+      if (mounted) setState(() {});
     }
+
+    // ── Start publishing stream ──────────────────────────────────────
+    // Must be called AFTER preview for video calls, but can be called
+    // immediately for voice calls
+    await ZegoCallService.startPublishing(uid);
+    debugPrint('[OngoingCall] Started publishing stream for ${_isVideoCall ? "video" : "voice"} call');
 
     debugPrint(
         '[OngoingCall] Zego call initialized (video=$_isVideoCall, room=$roomID)');
-    if (mounted) setState(() {});
   }
 
   Future<void> _cleanup() async {
@@ -208,7 +217,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
 
   void _toggleSpeaker() {
     setState(() => _isSpeaker = !_isSpeaker);
-    ZegoCallService.toggleSpeaker(!_isSpeaker);
+    ZegoCallService.toggleSpeaker(_isSpeaker);
   }
 
   void _toggleCamera() {
@@ -404,6 +413,15 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                                 : Colors.white24,
                             label: _isCameraOff ? 'Cam On' : 'Cam Off',
                             onTap: _toggleCamera,
+                          ),
+
+                        // Switch front/back camera (video calls only)
+                        if (_isVideoCall)
+                          _controlButton(
+                            icon: Icons.cameraswitch,
+                            color: Colors.white24,
+                            label: 'Flip',
+                            onTap: () => ZegoCallService.switchCamera(),
                           ),
 
                         // End call (large red button)

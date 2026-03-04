@@ -139,16 +139,25 @@ class CallRepository {
 
   // ─── 5) Delete call document (cleanup) ──────────────────────────────────
 
-  /// Deletes the call document and clears `activeCall` from the couple doc.
+  /// Deletes the call document and clears `activeCall` from the couple doc
+  /// **only if** it still belongs to [callId]. This prevents a stale cleanup
+  /// from accidentally removing a newer call's activeCall.
   Future<void> deleteCallDocument(String callId, String coupleId) async {
     try {
       await _callsRef.doc(callId).delete();
     } catch (_) {}
 
     try {
-      await _db.collection('couples').doc(coupleId).update({
-        'activeCall': FieldValue.delete(),
-      });
+      final coupleSnap =
+          await _db.collection('couples').doc(coupleId).get();
+      final activeCall =
+          coupleSnap.data()?['activeCall'] as Map<String, dynamic>?;
+      // Only clear if the activeCall still references THIS call.
+      if (activeCall == null || activeCall['callId'] == callId) {
+        await _db.collection('couples').doc(coupleId).update({
+          'activeCall': FieldValue.delete(),
+        });
+      }
     } catch (_) {}
   }
 

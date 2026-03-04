@@ -58,6 +58,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
         builder: (_) => OngoingCallScreen(
           callId: widget.call.id,
           coupleId: widget.call.coupleId,
+          partnerId: widget.call.callerId,
           partnerName: widget.call.callerName,
           type: widget.call.type,
           isCaller: false,

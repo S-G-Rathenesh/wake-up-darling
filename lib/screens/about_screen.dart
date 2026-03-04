@@ -20,7 +20,7 @@ class AboutScreen extends StatelessWidget {
       final info = await PackageInfo.fromPlatform();
       return info.version;
     } catch (_) {
-      return '2.0.0';
+      return '2.2.0';
     }
   }
 

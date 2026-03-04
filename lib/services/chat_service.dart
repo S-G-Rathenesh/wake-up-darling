@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/chat_message_model.dart';
+import 'cloudinary_service.dart';
 import 'local_media_service.dart';
 
 /// Full‐featured couple chat service backed by Firestore & local storage.
@@ -66,28 +68,74 @@ class ChatService {
     required File imageFile,
     bool isOneTime = false,
   }) async {
-    final ext = imageFile.path.split('.').last;
-    final fileName =
-        'img_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    // One-time images use base64 storage (no cloud upload)
+    if (isOneTime) {
+      return sendOneTimeImage(
+        coupleId: coupleId,
+        receiverId: receiverId,
+        imageFile: imageFile,
+      );
+    }
 
-    debugPrint('[ChatService] Saving image to local private storage...');
-    final localPath = await LocalMediaService.saveFileToPrivate(
-      imageFile,
-      fileName,
-    );
-    debugPrint('[ChatService] Image saved: $localPath');
+    try {
+      debugPrint('[ChatService] Uploading image to Cloudinary...');
+      final url = await CloudinaryService().uploadFile(imageFile);
+      
+      // Strict validation: ensure URL is valid HTTPS
+      if (url.isEmpty || !url.startsWith('https://')) {
+        throw Exception('Invalid mediaUrl returned: $url');
+      }
+      debugPrint('[ChatService] Image uploaded successfully: $url');
 
-    final msg = ChatMessage(
-      id: '',
-      senderId: _myUid,
-      receiverId: receiverId,
-      coupleId: coupleId,
-      messageType: isOneTime ? MessageType.oneTime : MessageType.image,
-      localPath: localPath,
-      mediaMimeType: 'image/$ext',
-      timestamp: DateTime.now(),
-    );
-    await _messagesCol(coupleId).add(msg.toMap());
+      final msg = ChatMessage(
+        id: '',
+        senderId: _myUid,
+        receiverId: receiverId,
+        coupleId: coupleId,
+        messageType: MessageType.image,
+        mediaUrl: url,
+        mediaMimeType: 'image/${imageFile.path.split('.').last}',
+        timestamp: DateTime.now(),
+        isDeleted: false,
+      );
+      await _messagesCol(coupleId).add(msg.toMap());
+    } catch (e) {
+      debugPrint('[ChatService] sendImageMessage failed: $e');
+      // DO NOT send message if upload failed
+      rethrow;
+    }
+  }
+
+  // ─── Send one-time image (base64 in Firestore, no cloud) ──────────────────
+
+  Future<void> sendOneTimeImage({
+    required String coupleId,
+    required String receiverId,
+    required File imageFile,
+  }) async {
+    try {
+      debugPrint('[ChatService] Encoding one-time image as base64...');
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+      debugPrint('[ChatService] One-time image encoded: ${bytes.length} bytes');
+
+      final msg = ChatMessage(
+        id: '',
+        senderId: _myUid,
+        receiverId: receiverId,
+        coupleId: coupleId,
+        messageType: MessageType.oneTime,
+        imageData: base64Image,
+        mediaMimeType: 'image/${imageFile.path.split('.').last}',
+        timestamp: DateTime.now(),
+        isDeleted: false,
+      );
+      await _messagesCol(coupleId).add(msg.toMap());
+      debugPrint('[ChatService] One-time image stored in Firestore (no cloud upload)');
+    } catch (e) {
+      debugPrint('[ChatService] sendOneTimeImage failed: $e');
+      rethrow;
+    }
   }
 
   // ─── Send voice note ─────────────────────────────────────────────────────
@@ -98,28 +146,44 @@ class ChatService {
     required File audioFile,
     int durationMs = 0,
   }) async {
-    final fileName =
-        'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    // Prevent sending empty / 0-duration voice notes.
+    if (durationMs <= 0) {
+      debugPrint('[ChatService] Skipping voice note — duration is 0');
+      return;
+    }
+    if (!audioFile.existsSync() || audioFile.lengthSync() == 0) {
+      debugPrint('[ChatService] Skipping voice note — file missing or empty');
+      return;
+    }
 
-    debugPrint('[ChatService] Saving voice note to private storage...');
-    final localPath = await LocalMediaService.saveFileToPrivate(
-      audioFile,
-      fileName,
-    );
-    debugPrint('[ChatService] Voice note saved: $localPath');
+    try {
+      debugPrint('[ChatService] Uploading voice note to Cloudinary...');
+      final url = await CloudinaryService().uploadFile(audioFile);
+      
+      // Strict validation: ensure URL is valid HTTPS
+      if (url.isEmpty || !url.startsWith('https://')) {
+        throw Exception('Invalid mediaUrl returned: $url');
+      }
+      debugPrint('[ChatService] Voice note uploaded successfully: $url');
 
-    final msg = ChatMessage(
-      id: '',
-      senderId: _myUid,
-      receiverId: receiverId,
-      coupleId: coupleId,
-      messageType: MessageType.voice,
-      localPath: localPath,
-      mediaMimeType: 'audio/m4a',
-      mediaDurationMs: durationMs,
-      timestamp: DateTime.now(),
-    );
-    await _messagesCol(coupleId).add(msg.toMap());
+      final msg = ChatMessage(
+        id: '',
+        senderId: _myUid,
+        receiverId: receiverId,
+        coupleId: coupleId,
+        messageType: MessageType.voice,
+        mediaUrl: url,
+        mediaMimeType: 'audio/m4a',
+        mediaDurationMs: durationMs,
+        timestamp: DateTime.now(),
+        isDeleted: false,
+      );
+      await _messagesCol(coupleId).add(msg.toMap());
+    } catch (e) {
+      debugPrint('[ChatService] sendVoiceMessage failed: $e');
+      // DO NOT send message if upload failed
+      rethrow;
+    }
   }
 
   // ─── Stream messages (real-time) ──────────────────────────────────────────
@@ -221,9 +285,9 @@ class ChatService {
     required String messageId,
   }) async {
     try {
-      // Delete local media file if present.
       final doc = await _messagesCol(coupleId).doc(messageId).get();
       if (doc.exists) {
+        // Delete local media file if present.
         final localPath = doc.data()?['localPath'] as String?;
         if (localPath != null && localPath.isNotEmpty) {
           await LocalMediaService.deletePrivateFile(localPath);
@@ -232,6 +296,7 @@ class ChatService {
 
       await _messagesCol(coupleId).doc(messageId).update({
         'deletedForEveryone': true,
+        'isDeleted': true,
         'text': '',
         'mediaUrl': null,
         'localPath': null,
@@ -293,27 +358,27 @@ class ChatService {
   }
 
   // ─── One-time image view ──────────────────────────────────────────────────
+  // ✅ CORRECT FLOW: Display image → delete from Firestore → Cloudinary auto cleanup
 
   Future<void> markOneTimeViewed({
     required String coupleId,
     required String messageId,
   }) async {
     try {
-      // First, get the message to find localPath and delete the file.
       final doc = await _messagesCol(coupleId).doc(messageId).get();
       if (doc.exists) {
+        // Delete local cached file if present
         final localPath = doc.data()?['localPath'] as String?;
         if (localPath != null && localPath.isNotEmpty) {
           await LocalMediaService.deletePrivateFile(localPath);
         }
       }
 
-      await _messagesCol(coupleId).doc(messageId).update({
-        'isOneTimeViewed': true,
-        'oneTimeViewedBy': FieldValue.arrayUnion([_myUid]),
-        'localPath': FieldValue.delete(),
-        'mediaUrl': FieldValue.delete(),  // clear legacy URL too
-      });
+      // ✅ DELETE MESSAGE FROM FIRESTORE after viewing
+      // This prevents the receiver from viewing again
+      // Cloudinary storage is managed separately by Cloudinary
+      await _messagesCol(coupleId).doc(messageId).delete();
+      debugPrint('[ChatService] One-time message deleted from Firestore: $messageId');
     } catch (e) {
       debugPrint('[ChatService] markOneTimeViewed error: $e');
     }

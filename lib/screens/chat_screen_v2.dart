@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -14,9 +15,11 @@ import 'package:path_provider/path_provider.dart';
 import '../models/chat_message_model.dart';
 import '../services/chat_service.dart';
 import '../services/local_media_service.dart';
+import '../services/media_service.dart';
 import '../widgets/chat_romantic_bg.dart';
 import '../widgets/romantic_hearts_overlay.dart';
 import '../widgets/typing_dots.dart';
+import '../widgets/voice_bubble.dart';
 import 'shared_media_screen.dart';
 
 /// Full-featured WhatsApp-level couple chat screen.
@@ -53,9 +56,11 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
 
   bool _showEmoji = false;
   bool _isRecording = false;
+  bool _isUploading = false;
   bool _isSearching = false;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  DateTime? _recordStartedAt;
 
   // Reply state
   ChatMessage? _replyTo;
@@ -154,13 +159,25 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
       imageQuality: 80,
     );
     if (picked == null) return;
-    await _chatService.sendImageMessage(
-      coupleId: widget.coupleId,
-      receiverId: widget.partnerId,
-      imageFile: File(picked.path),
-      isOneTime: isOneTime,
-    );
-    _scrollToBottom();
+    
+    setState(() => _isUploading = true);
+    try {
+      await _chatService.sendImageMessage(
+        coupleId: widget.coupleId,
+        receiverId: widget.partnerId,
+        imageFile: File(picked.path),
+        isOneTime: isOneTime,
+      );
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   Future<void> _takePhotoAndSend({bool isOneTime = false}) async {
@@ -170,13 +187,25 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
       imageQuality: 80,
     );
     if (picked == null) return;
-    await _chatService.sendImageMessage(
-      coupleId: widget.coupleId,
-      receiverId: widget.partnerId,
-      imageFile: File(picked.path),
-      isOneTime: isOneTime,
-    );
-    _scrollToBottom();
+    
+    setState(() => _isUploading = true);
+    try {
+      await _chatService.sendImageMessage(
+        coupleId: widget.coupleId,
+        receiverId: widget.partnerId,
+        imageFile: File(picked.path),
+        isOneTime: isOneTime,
+      );
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   // ─── Voice Recording ─────────────────────────────────────────────────────
@@ -186,20 +215,49 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
       final dir = await getTemporaryDirectory();
       final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
-      setState(() => _isRecording = true);
+      setState(() {
+        _isRecording = true;
+        _recordStartedAt = DateTime.now();
+      });
     }
   }
 
   Future<void> _stopAndSendRecording() async {
     final path = await _recorder.stop();
+    final durationMs = _recordStartedAt != null
+        ? DateTime.now().difference(_recordStartedAt!).inMilliseconds
+        : 0;
     setState(() => _isRecording = false);
     if (path == null) return;
-    await _chatService.sendVoiceMessage(
-      coupleId: widget.coupleId,
-      receiverId: widget.partnerId,
-      audioFile: File(path),
-    );
-    _scrollToBottom();
+
+    // Prevent sending if duration is 0 or too short (< 500ms)
+    if (durationMs < 500) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recording too short')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      await _chatService.sendVoiceMessage(
+        coupleId: widget.coupleId,
+        receiverId: widget.partnerId,
+        audioFile: File(path),
+        durationMs: durationMs,
+      );
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Voice upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   void _cancelRecording() async {
@@ -721,6 +779,7 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
         final reversed = messages.reversed.toList();
 
         return ListView.builder(
+          key: const PageStorageKey('chat_list'),
           controller: _scrollController,
           reverse: true,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -760,10 +819,11 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
             }
 
             return Column(
-              key: ValueKey(msg.id),
+              key: ValueKey('col_${msg.id}'),
               children: [
                 ?dateHeader,
                 _MessageBubbleV2(
+                  key: ValueKey(msg.id),
                   message: msg,
                   isMe: isMe,
                   myUid: _myUid,
@@ -916,6 +976,25 @@ class _ChatScreenV2State extends State<ChatScreenV2> with WidgetsBindingObserver
 
           // Send / Voice record button — wrapped in ValueListenableBuilder
           // so only this widget rebuilds when text changes, not the whole chat.
+          if (_isUploading)
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFFE040FB), Color(0xFF7C4DFF)],
+                ),
+              ),
+              child: const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          else
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: _controller,
             builder: (context, value, _) {
@@ -979,6 +1058,7 @@ class _MessageBubbleV2 extends StatelessWidget {
   final VoidCallback onOneTimeView;
 
   const _MessageBubbleV2({
+    super.key,
     required this.message,
     required this.isMe,
     required this.myUid,
@@ -1182,6 +1262,12 @@ class _MessageBubbleV2 extends StatelessWidget {
   /// Prefers localPath, falls back to mediaUrl (legacy).
   String? get _resolvedPath => message.localPath ?? message.mediaUrl;
 
+  /// Whether the mediaUrl is a remote URL (not a local file path).
+  bool get _isRemoteUrl {
+    final url = message.mediaUrl;
+    return url != null && (url.startsWith('http://') || url.startsWith('https://'));
+  }
+
   Widget _buildContent(BuildContext context) {
     switch (message.messageType) {
       case MessageType.text:
@@ -1191,11 +1277,55 @@ class _MessageBubbleV2 extends StatelessWidget {
         );
 
       case MessageType.image:
+        if (message.isDeleted) {
+          return const Text('File deleted',
+              style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic));
+        }
+        // If we have a remote URL, download to local first
+        if (_isRemoteUrl) {
+          return FutureBuilder<String>(
+            future: MediaService.downloadToLocal(message.mediaUrl!, message.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  width: 200,
+                  height: 150,
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2),
+                  ),
+                );
+              }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return const Text('📷 Failed to load image',
+                    style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic));
+              }
+              final localPath = snapshot.data!;
+              final file = File(localPath);
+              if (!file.existsSync()) {
+                return const Text('📷 File deleted',
+                    style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic));
+              }
+              return GestureDetector(
+                onTap: () => _openFullImage(context, localPath),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    file,
+                    width: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.broken_image, color: Colors.white54),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+        // Local file path (legacy or voice)
         final path = _resolvedPath;
         if (path == null || path.isEmpty) {
           return const Text('📷 Image', style: TextStyle(color: Colors.white70));
         }
-        // Local file
         final file = File(path);
         if (!file.existsSync()) {
           return const Text('📷 File deleted',
@@ -1216,19 +1346,28 @@ class _MessageBubbleV2 extends StatelessWidget {
         );
 
       case MessageType.voice:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.mic, color: Colors.white70, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              '🎙️ Voice Note${message.mediaDurationMs != null ? ' (${(message.mediaDurationMs! / 1000).toStringAsFixed(0)}s)' : ''}',
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ],
+        if (message.isDeleted) {
+          return const Text('File deleted',
+              style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic));
+        }
+        final voiceUrl = message.mediaUrl ?? message.localPath;
+        if (voiceUrl == null || voiceUrl.isEmpty) {
+          return const Text('Voice unavailable',
+              style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic));
+        }
+        return VoiceBubble(
+          audioUrl: voiceUrl,
+          durationMs: message.mediaDurationMs,
+          isMine: isMe,
         );
 
       case MessageType.oneTime:
+        if (message.isDeleted) {
+          return const Text(
+            'File deleted',
+            style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic),
+          );
+        }
         if (message.isOneTimeViewed || message.oneTimeViewedBy.contains(myUid)) {
           return const Text(
             '🔒 One-time photo viewed',
@@ -1238,14 +1377,14 @@ class _MessageBubbleV2 extends StatelessWidget {
         if (!isMe) {
           return GestureDetector(
             onTap: () {
-              final path = _resolvedPath;
-              if (path != null && path.isNotEmpty) {
-                // Show image briefly then mark as viewed
+              final data = message.imageData;
+              if (data != null && data.isNotEmpty) {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
                   builder: (ctx) => _OneTimeImageViewer(
-                    localPath: path,
+                    imageData: data,
+                    messageId: message.id,
                     onViewed: () {
                       onOneTimeView();
                       Navigator.pop(ctx);
@@ -1283,9 +1422,10 @@ class _MessageBubbleV2 extends StatelessWidget {
 // ─── One-Time Image Viewer ──────────────────────────────────────────────────
 
 class _OneTimeImageViewer extends StatefulWidget {
-  final String localPath;
+  final String imageData;   // base64 encoded image
+  final String messageId;
   final VoidCallback onViewed;
-  const _OneTimeImageViewer({required this.localPath, required this.onViewed});
+  const _OneTimeImageViewer({required this.imageData, required this.messageId, required this.onViewed});
 
   @override
   State<_OneTimeImageViewer> createState() => _OneTimeImageViewerState();
@@ -1293,25 +1433,43 @@ class _OneTimeImageViewer extends StatefulWidget {
 
 class _OneTimeImageViewerState extends State<_OneTimeImageViewer> {
   static const _channel = MethodChannel('ultra_alarm');
+  Uint8List? _imageBytes;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     // Enable FLAG_SECURE to block screenshots/screen recording.
     _channel.invokeMethod('enableSecureMode').catchError((_) {});
-    // Auto close after 3 seconds.
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) _close();
-    });
+    _decodeImage();
+  }
+
+  void _decodeImage() {
+    try {
+      _imageBytes = base64Decode(widget.imageData);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+      // Auto close after 3 seconds.
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _close();
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   void _close() {
     _channel.invokeMethod('disableSecureMode').catchError((_) {});
+    _imageBytes = null; // Clear from memory immediately
     widget.onViewed();
   }
 
   @override
   void dispose() {
+    _imageBytes = null;
     // Safety net: always clear secure mode.
     _channel.invokeMethod('disableSecureMode').catchError((_) {});
     super.dispose();
@@ -1319,7 +1477,6 @@ class _OneTimeImageViewerState extends State<_OneTimeImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final file = File(widget.localPath);
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -1327,10 +1484,12 @@ class _OneTimeImageViewerState extends State<_OneTimeImageViewer> {
         child: Stack(
           children: [
             Center(
-              child: file.existsSync()
-                  ? Image.file(file, fit: BoxFit.contain)
-                  : const Text('File deleted',
-                      style: TextStyle(color: Colors.white54)),
+              child: _loading
+                  ? const CircularProgressIndicator(color: Colors.white54)
+                  : _imageBytes != null
+                      ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                      : const Text('Image unavailable',
+                          style: TextStyle(color: Colors.white54)),
             ),
             // Watermark overlay
             Positioned(

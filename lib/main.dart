@@ -19,6 +19,7 @@ import 'services/alarm_service.dart';
 import 'services/alarm_listener_service.dart';
 import 'services/chat_service.dart';
 import 'services/user_service.dart';
+import 'services/call_service_singleton.dart';
 import 'models/call_model.dart';
 
 /// Top-level (isolate-safe) FCM background handler.
@@ -176,6 +177,11 @@ void main() async {
   // ───────────────────────────────────────────────────────────────────────────
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize CallService singleton (Zego engine) - fire and forget to avoid blocking
+  CallService().init().catchError((e) {
+    debugPrint('[Main] CallService init error (non-blocking): $e');
+  });
 
   // Initialize AndroidAlarmManager (must be after ensureInitialized).
   await AndroidAlarmManager.initialize();
@@ -387,6 +393,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.noScaling,
+          ),
+          child: child!,
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,

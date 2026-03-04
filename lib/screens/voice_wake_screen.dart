@@ -169,9 +169,17 @@ class _VoiceWakeScreenState extends State<VoiceWakeScreen> {
           ),
           const RomanticHeartsOverlay(),
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Column(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom -
+                      kToolbarHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
                 children: [
                   const SizedBox(height: 40),
                   Text(
@@ -323,6 +331,8 @@ class _VoiceWakeScreenState extends State<VoiceWakeScreen> {
                       ),
                     ),
                 ],
+              ),
+                ),
               ),
             ),
           ),

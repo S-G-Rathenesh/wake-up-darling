@@ -281,14 +281,14 @@ class WebRTCService {
           },
         );
       } catch (e) {
-        offerSub?.cancel();
+        offerSub.cancel();
         debugPrint('[WebRTC] Error waiting for offer: $e');
         rethrow;
       }
     }
 
     await _pc!.setRemoteDescription(
-      RTCSessionDescription(offerMap!['sdp'], offerMap['type']),
+      RTCSessionDescription(offerMap['sdp'], offerMap['type']),
     );
     _remoteDescSet = true;
     debugPrint('[WebRTC] Remote offer set (callee)');
