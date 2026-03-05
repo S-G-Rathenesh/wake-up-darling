@@ -55,28 +55,28 @@ Download the latest version of **Wake Up Darling** for Android.
 ## 📸 Screenshots
 
 <p align="center">
+  <img src="Screenshots/1.jpeg" width="200"/>
   <img src="Screenshots/2.jpeg" width="200"/>
+  <img src="Screenshots/3.jpeg" width="200"/>
   <img src="Screenshots/4.jpeg" width="200"/>
+</p>
+<p align="center">
   <img src="Screenshots/5.jpeg" width="200"/>
   <img src="Screenshots/6.jpeg" width="200"/>
-</p>
-<p align="center">
   <img src="Screenshots/7.jpeg" width="200"/>
   <img src="Screenshots/8.jpeg" width="200"/>
+</p>
+<p align="center">
   <img src="Screenshots/9.jpeg" width="200"/>
   <img src="Screenshots/10.jpeg" width="200"/>
-</p>
-<p align="center">
   <img src="Screenshots/11.jpeg" width="200"/>
   <img src="Screenshots/12.jpeg" width="200"/>
-  <img src="Screenshots/13.jpeg" width="200"/>
-  <img src="Screenshots/14.jpeg" width="200"/>
 </p>
 <p align="center">
+  <img src="Screenshots/13.jpeg" width="200"/>
+  <img src="Screenshots/14.jpeg" width="200"/>
   <img src="Screenshots/15.jpeg" width="200"/>
   <img src="Screenshots/16.jpeg" width="200"/>
-  <img src="Screenshots/WhatsApp%20Image%202026-03-05%20at%209.42.06%20AM.jpeg" width="200"/>
-  <img src="Screenshots/WhatsApp%20Image%202026-03-05%20at%209.42.07%20AM.jpeg" width="200"/>
 </p>
 
 ---
